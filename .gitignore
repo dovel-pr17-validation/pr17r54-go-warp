@@ -1,0 +1,32 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, build with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+/.idea
+warp
+*~
+dist
+
+# zst files
+*.zst
+
+# written by libcufile when running an RDMA build
+cufile.log
+
+# qreleaser state file
+.release-state.sh
+warp-release/
+
+# RDMA release staging: scripts/release-post-transform.sh puts the bundled
+# libs3rdma in .rdma-image for pkger and the container image build, and pkger's
+# own input in .rdma-pkg.
+.rdma-image/
+.rdma-pkg/

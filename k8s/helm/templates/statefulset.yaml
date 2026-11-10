@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "warp.fullname" . }}
+  labels:
+    {{- include "warp.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "warp.fullname" . }}
+  podManagementPolicy: Parallel
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "warp.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      name: {{ template "warp.fullname" . }}
+      labels:
+        {{- include "warp.selectorLabels" . | nindent 8 }}
+      {{- if and .Values.rdma.enabled .Values.rdma.podAnnotations }}
+      annotations:
+        {{- toYaml .Values.rdma.podAnnotations | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if and .Values.rdma.enabled .Values.rdma.hostNetwork }}
+      hostNetwork: true
+      # Without this the pods lose cluster DNS and cannot resolve the headless
+      # service the server addresses them through.
+      dnsPolicy: ClusterFirstWithHostNet
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ include "warp.image" . }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - client
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+          {{- with (include "warp.rdmaClientEnv" . | trim) }}
+          env:
+            {{- . | nindent 12 }}
+          {{- end }}
+          {{- with (include "warp.resources" (dict "ctx" $ "base" $.Values.clientResources)) }}
+          resources:
+            {{- . | nindent 12 }}
+          {{- end }}
+          {{- with (include "warp.securityContext" .) }}
+          securityContext:
+            {{- . | nindent 12 }}
+          {{- end }}
+    {{- if .Values.serviceAccount.create }}
+      serviceAccountName: {{ include "warp.serviceAccountName" . }}
+    {{- end }}
+    {{- if .Values.podSecurityContext }}
+      securityContext: {{- .Values.podSecurityContext | toYaml | nindent 8 }}
+    {{- end }}
+    {{- if .Values.affinity }}
+      affinity: {{- .Values.affinity | toYaml | nindent 8 }}
+    {{- end }}
+    {{- if .Values.nodeSelector }}
+      nodeSelector: {{- .Values.nodeSelector | toYaml | nindent 8 }}
+    {{- end }}
+    {{- if .Values.tolerations }}
+      tolerations: {{- .Values.tolerations | toYaml | nindent 8 }}
+    {{- end }}
